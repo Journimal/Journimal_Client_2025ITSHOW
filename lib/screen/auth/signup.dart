@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:journimal_client/screen/%08auth/login.dart';
+import 'package:journimal_client/screen/auth/login.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -73,7 +73,7 @@ class SignupScreen extends StatelessWidget {
             'Sign up failed: ${responseBody["message"] ?? "Unknown error"}');
       }
     } catch (e) {
-      print('Signup error: $e');
+      debugPrint('Signup error: $e');
       if (context.mounted) {
         showSnackBar(context, 'Error: $e');
       }

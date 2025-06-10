@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:journimal_client/screen/%08auth/signup.dart';
+import 'package:journimal_client/screen/auth/signup.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
