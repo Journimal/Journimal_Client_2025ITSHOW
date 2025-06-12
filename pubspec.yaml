@@ -41,6 +41,9 @@ dependencies:
   flutter_dotenv: ^5.0.2
   intl: ^0.20.2
   shared_preferences: ^2.2.2 
+  provider: ^6.1.1
+  dotted_border: ^2.1.0
+
 
 dev_dependencies:
   flutter_test:
@@ -66,10 +69,6 @@ flutter:
 
   assets:
   - assets/images/
-  - assets/images/animal_content/
-  - assets/images/animal_tear/
-  - assets/images/mission_photo/
-  - assets/images/mission_thumbnail/
   - .env
 
   # To add assets to your application, add an assets section, like this:
