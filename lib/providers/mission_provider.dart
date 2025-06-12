@@ -6,20 +6,12 @@ import 'package:journimal_client/services/token_service.dart';
 import 'dart:convert';
 
 class MissionProvider with ChangeNotifier {
-  int _completedMissions = 0;
   DateTime _startDate = DateTime.now(); // 여행 시작 날짜 (API에서 불러올 예정)
-
-  int get completedMissions => _completedMissions;
 
   // 여행 시작일로부터 며칠이 지났는지 계산
   int get dayCount {
     final difference = DateTime.now().difference(_startDate).inDays;
     return difference + 1; // Day 1부터 시작
-  }
-
-  // 진행률 계산 (0.0 ~ 1.0)
-  double get progressPercentage {
-    return _completedMissions / 2; // 총 2개 미션 기준
   }
 
   String _userName = '';
@@ -55,17 +47,63 @@ class MissionProvider with ChangeNotifier {
     }
   }
 
-  void completeMission() {
-    if (_completedMissions < 2) {
-      _completedMissions++;
-      notifyListeners();
+  int _completeMission = 0;
+  int get completeMission => _completeMission;
+  set completeMission(int completeMission) {
+    _completeMission = completeMission;
+    notifyListeners();
+  }
+
+  int get totalMission {
+    switch (_animalLevel.toLowerCase()) {
+      case 'vu':
+        return 2;
+      case 'eu':
+        return 4;
+      case 'ce':
+        return 6;
+      default:
+        return 2;
     }
   }
 
-  // API에서 미션 완료 상태 로드
-  void loadMissionProgress(int completedCount) {
-    _completedMissions = completedCount;
-    notifyListeners();
+  double get progressPercentage {
+    return _completeMission / totalMission;
+  }
+
+  Future<void> fetchMission() async {
+    try {
+      final apiUrl = dotenv.env['API_URL']!;
+      final tripUrl = '$apiUrl/trip';
+
+      final token = await _tokenService.getToken();
+
+      final response = await http.get(
+        Uri.parse(tripUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final trips = data['data'] as List;
+
+        if (trips.isNotEmpty) {
+          trips.sort((a, b) => b['id'].compareTo(a['id']));
+          final latestTrip = trips.first;
+
+          _completeMission = latestTrip['completeMission'] ?? 0;
+          notifyListeners();
+        } else {
+          debugPrint('여행 데이터가 없습니다.');
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('Mission 가져오기 중 오류 발생: $e');
+      notifyListeners();
+    }
   }
 
   String _animalLevel = 'vu';
@@ -128,17 +166,11 @@ class MissionProvider with ChangeNotifier {
           'Authorization': 'Bearer $token',
         },
       );
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        // data['data']로 접근해야 함 (data['id']가 아닌)
         final trips = data['data'] as List;
-
         if (trips.isNotEmpty) {
-          // trip id 기준으로 내림차순 정렬 (가장 최근 항목이 먼저 오도록)
           trips.sort((a, b) => b['id'].compareTo(a['id']));
-
-          // 가장 최근 trip 선택
           final latestTrip = trips.first;
 
           if (latestTrip['lastAnimal'] != null) {
@@ -184,18 +216,11 @@ class MissionProvider with ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
-        // data['data']로 접근해야 함 (data['id']가 아닌)
         final trips = data['data'] as List;
 
         if (trips.isNotEmpty) {
-          // trip id 기준으로 내림차순 정렬 (가장 최근 항목이 먼저 오도록)
           trips.sort((a, b) => b['id'].compareTo(a['id']));
-
-          // 가장 최근 trip 선택
           final latestTrip = trips.first;
-
-          // lastAnimal이 존재하는지 확인하고 aniImage 가져오기
           if (latestTrip['lastAnimal'] != null) {
             final imageUrl = latestTrip['lastAnimal']['aniImage'];
             _animalImageUrl = imageUrl;
@@ -204,7 +229,6 @@ class MissionProvider with ChangeNotifier {
             debugPrint('lastAnimal 데이터가 없습니다.');
             _animalImageUrl = null;
           }
-
           notifyListeners();
         } else {
           debugPrint('여행 데이터가 없습니다.');
