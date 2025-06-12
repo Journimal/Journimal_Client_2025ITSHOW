@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:journimal_client/screen/Home/home_screen.dart';
+import 'package:journimal_client/screen/home/home_screen.dart';
 import 'dart:convert';
 import 'package:journimal_client/services/token_service.dart';
 
