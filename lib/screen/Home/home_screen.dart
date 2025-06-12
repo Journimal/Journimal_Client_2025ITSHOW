@@ -4,7 +4,9 @@ import '../../providers/mission_provider.dart';
 import 'package:dotted_border/dotted_border.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final Function onMissionSelect;
+
+  const HomeScreen({super.key, required this.onMissionSelect});
 
   @override
   State<HomeScreen> createState() => _HomeScreen();
@@ -67,29 +69,27 @@ class _HomeScreen extends State<HomeScreen> {
             const SizedBox(height: 80),
 
             // Animal image
-            Container(
-              child: ClipRRect(
-                child: Image.network(
-                  missionProvider.animalImageUrl ?? '',
-                  errorBuilder: (context, error, stackTrace) => Container(
+            ClipRRect(
+              child: Image.network(
+                missionProvider.animalImageUrl ?? '',
+                errorBuilder: (context, error, stackTrace) => Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(60),
+                  ),
+                ),
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
                     decoration: BoxDecoration(
-                      color: Colors.grey[300],
+                      color: Colors.grey[200],
                       borderRadius: BorderRadius.circular(60),
                     ),
-                  ),
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(60),
-                      ),
-                      child: const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  },
-                ),
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                },
               ),
             ),
 
@@ -193,9 +193,7 @@ class _HomeScreen extends State<HomeScreen> {
                   // Dashed border container
                   GestureDetector(
                     onTap: () {
-                      // Navigate to mission selection screen
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) => MissionSelectionScreen()));
-                      debugPrint("Navigate to mission selection");
+                      widget.onMissionSelect();
                     },
                     child: DottedBorder(
                       color: Colors.white,
