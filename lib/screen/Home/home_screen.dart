@@ -19,6 +19,7 @@ class _HomeScreen extends State<HomeScreen> {
     provider.fetchUserName();
     provider.fetchAnimalImage();
     provider.fetchAnimalLevel();
+    provider.fetchMission();
   }
 
   @override
@@ -145,7 +146,7 @@ class _HomeScreen extends State<HomeScreen> {
                   width: 12,
                 ),
                 Text(
-                  '${missionProvider.completedMissions} / 2',
+                  '${missionProvider.completeMission} / ${missionProvider.totalMission}',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
