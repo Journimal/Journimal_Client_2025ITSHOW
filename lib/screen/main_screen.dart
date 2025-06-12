@@ -44,6 +44,7 @@ class _MainScreenState extends State<MainScreen> {
           height: 100,
           child: BottomNavigationBar(
             currentIndex: _selectedIndex,
+            backgroundColor: Colors.white,
             onTap: _onItemTapped,
             type: BottomNavigationBarType.fixed,
             selectedItemColor: Color(0xff022169),
