@@ -12,22 +12,28 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // 각 탭에 해당하는 화면 리스트
-  final List<Widget> _screens = [
-    HomeScreen(),
-    MissionSelectScreen(),
-    TripScreen(),
-    InfromationScreen(),
-  ];
-
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
+  void _goToMissionScreen() {
+    setState(() {
+      _selectedIndex = 1; // MissionSelectScreen으로 전환
+    });
+  }
+
+  // 각 탭에 해당하는 화면 리스트
+
   @override
   Widget build(BuildContext context) {
+    final List<Widget> _screens = [
+      HomeScreen(onMissionSelect: _goToMissionScreen),
+      MissionSelectScreen(),
+      TripScreen(),
+      InfromationScreen(),
+    ];
     return Theme(
       data: Theme.of(context).copyWith(
         splashFactory: NoSplash.splashFactory, // 물결 효과 제거

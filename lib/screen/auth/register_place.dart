@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:journimal_client/screen/home/home_screen.dart';
+import 'package:journimal_client/screen/main_screen.dart';
 import 'dart:convert';
 import 'package:journimal_client/services/token_service.dart';
 
@@ -144,7 +145,7 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
       // API 호출 성공 시 홈 화면으로 이동
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
+        MaterialPageRoute(builder: (context) => MainScreen()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
