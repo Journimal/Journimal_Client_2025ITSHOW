@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:journimal_client/services/token_service.dart';
 import 'dart:convert';
+import 'package:journimal_client/models/mission.dart'; // Mission 모델이 분리되어 있다면 import
 
 class MissionProvider with ChangeNotifier {
   DateTime _startDate = DateTime.now(); // 여행 시작 날짜 (API에서 불러올 예정)
@@ -244,5 +245,70 @@ class MissionProvider with ChangeNotifier {
       _animalImageUrl = null;
       notifyListeners();
     }
+  }
+
+  List<Mission> _allMissions = [];
+  List<Mission> get allMissions => _allMissions;
+
+  List<Mission> get selectedMissions =>
+      _allMissions.where((m) => m.isSelected).toList();
+  List<Mission> get unselectedMissions =>
+      _allMissions.where((m) => !m.isSelected).toList();
+
+  List<Mission> get certifiedMissions =>
+      _allMissions.where((m) => m.isCertified).toList();
+  List<Mission> get uncertifiedMissions =>
+      _allMissions.where((m) => !m.isCertified).toList();
+  Future<void> fetchAvailableMissions() async {
+    try {
+      final apiUrl = dotenv.env['API_URL']!;
+      final missionsUrl = '$apiUrl/mission';
+
+      final token = await _tokenService.getToken();
+
+      final response = await http.get(
+        Uri.parse(missionsUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body)['data'] as List;
+        _allMissions = data.map((e) => Mission.fromJson(e)).toList();
+        notifyListeners();
+      } else {
+        debugPrint('미션 목록 가져오기 실패: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('미션 목록 오류: $e');
+    }
+  }
+
+  void toggleMissionSelection(Mission mission) {
+    if (mission.isSelected) {
+      mission.isSelected = false;
+    } else {
+      if (selectedMissions.length < totalMission) {
+        mission.isSelected = true;
+      } else {
+        debugPrint('최대 선택 미션 수 초과');
+      }
+    }
+    notifyListeners();
+  }
+
+  void toggleMissionCertified(Mission mission) {
+    if (mission.isCertified) {
+      mission.isCertified = false;
+    } else {
+      if (selectedMissions.length < totalMission) {
+        mission.isCertified = true;
+      } else {
+        debugPrint('최대 선택 미션 수 초과');
+      }
+    }
+    notifyListeners();
   }
 }
