@@ -31,7 +31,7 @@ class _MissionSelectScreenState extends State<MissionSelectScreen> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Consumer<MissionProvider>(
             builder: (context, provider, child) {
               final selectedMissions = provider.selectedMissions;

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:journimal_client/models/mission.dart'; // Mission 모델이 분리되어 있다면 import
+import 'package:journimal_client/models/mission.dart';
 import 'package:provider/provider.dart';
-import 'package:journimal_client/providers/mission_provider.dart'; // 이 줄 추가
+import 'package:journimal_client/providers/mission_provider.dart';
 
 // 설문 조사 화면
 class SurveyScreen extends StatefulWidget {
   final Mission mission;
-
-  SurveyScreen({required this.mission});
+  SurveyScreen({
+    required this.mission,
+  });
 
   @override
   _SurveyScreenState createState() => _SurveyScreenState();
@@ -21,6 +22,18 @@ class _SurveyScreenState extends State<SurveyScreen> {
 
   bool get isFormComplete =>
       answer1 != null && answer2 != null && answer3 != null;
+
+  // 미션 성공 여부 판단 (2개 이상 yes)
+  bool get isMissionSuccessful {
+    if (!isFormComplete) return false;
+
+    int yesCount = 0;
+    if (answer1 == 'yes') yesCount++;
+    if (answer2 == 'yes') yesCount++;
+    if (answer3 == 'yes') yesCount++;
+
+    return yesCount >= 2;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +106,35 @@ class _SurveyScreenState extends State<SurveyScreen> {
                       fontFamily: 'Pretendard',
                     ),
                   ),
+                  SizedBox(height: 12),
+                  // 미션 성공 조건 안내
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Color(0xffE3F2FD),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Color(0xff1976D2),
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Mission succeeds when you answer "Yes" to at least 2 questions',
+                            style: TextStyle(
+                              color: Color(0xff1976D2),
+                              fontSize: 14,
+                              fontFamily: 'Pretendard',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   SizedBox(height: 20),
                   Divider()
                 ],
@@ -124,6 +166,75 @@ class _SurveyScreenState extends State<SurveyScreen> {
                     answer3,
                     (value) => setState(() => answer3 = value),
                   ),
+
+                  // 미션 결과 미리보기 (모든 답변이 완료된 경우)
+                  if (isFormComplete) ...[
+                    SizedBox(height: 24),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isMissionSuccessful
+                            ? Color(0xffE8F5E8)
+                            : Color(0xffFFEBEE),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isMissionSuccessful
+                              ? Color(0xff4CAF50)
+                              : Color(0xffF44336),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isMissionSuccessful
+                                ? Icons.check_circle_outline
+                                : Icons.cancel_outlined,
+                            color: isMissionSuccessful
+                                ? Color(0xff4CAF50)
+                                : Color(0xffF44336),
+                            size: 24,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isMissionSuccessful
+                                      ? 'Mission Success!'
+                                      : 'Mission Failed',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    fontFamily: 'Pretendard',
+                                    color: isMissionSuccessful
+                                        ? Color(0xff2E7D32)
+                                        : Color(0xffC62828),
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  isMissionSuccessful
+                                      ? 'You answered "Yes" to ${_getYesCount()} questions'
+                                      : 'You need at least 2 "Yes" answers to succeed',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontFamily: 'Pretendard',
+                                    color: isMissionSuccessful
+                                        ? Color(0xff388E3C)
+                                        : Color(0xffD32F2F),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   SizedBox(height: 32),
 
                   // 제출 버튼
@@ -216,6 +327,14 @@ class _SurveyScreenState extends State<SurveyScreen> {
     );
   }
 
+  int _getYesCount() {
+    int count = 0;
+    if (answer1 == 'yes') count++;
+    if (answer2 == 'yes') count++;
+    if (answer3 == 'yes') count++;
+    return count;
+  }
+
   void _submitSurvey() async {
     setState(() {
       isSubmitting = true;
@@ -228,7 +347,13 @@ class _SurveyScreenState extends State<SurveyScreen> {
     };
 
     final provider = Provider.of<MissionProvider>(context, listen: false);
-    final success = await provider.certifyMission(widget.mission, answers);
+
+    // 미션 성공 여부에 따라 API 호출
+    final success = await provider.CertifedMission(
+      mission: widget.mission,
+      answers: answers,
+      isSuccessful: isMissionSuccessful,
+    );
 
     setState(() {
       isSubmitting = false;
@@ -237,17 +362,51 @@ class _SurveyScreenState extends State<SurveyScreen> {
     if (success) {
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('Mission Completed!'),
-            content: Text('Your eco-mission has been successfully completed.'),
+            title: Row(
+              children: [
+                Icon(
+                  isMissionSuccessful ? Icons.celebration : Icons.info_outline,
+                  color: isMissionSuccessful
+                      ? Color(0xff4CAF50)
+                      : Color(0xffFF9800),
+                ),
+                SizedBox(width: 8),
+                Text(
+                  isMissionSuccessful
+                      ? 'Mission Completed!'
+                      : 'Mission Submitted',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 18,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              isMissionSuccessful
+                  ? 'Congratulations! Your eco-mission has been successfully completed.'
+                  : 'Your mission has been submitted, but you didn\'t meet the success criteria. Keep trying!',
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 16,
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop(); // 다이얼로그 닫기
                   Navigator.of(context).pop(); // 설문 화면 닫기
                 },
-                child: Text('OK'),
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    color: Color(0xff022169),
+                  ),
+                ),
               ),
             ],
           );
@@ -256,7 +415,10 @@ class _SurveyScreenState extends State<SurveyScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to submit mission. Please try again.'),
+          content: Text(
+            'Failed to submit mission. Please try again.',
+            style: TextStyle(fontFamily: 'Pretendard'),
+          ),
           backgroundColor: Colors.red,
         ),
       );
