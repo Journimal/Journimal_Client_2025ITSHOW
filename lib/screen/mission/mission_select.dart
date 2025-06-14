@@ -1,7 +1,8 @@
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
+import 'package:journimal_client/screen/mission/mission_survey.dart';
 import 'package:provider/provider.dart';
-import 'package:journimal_client/providers/mission_provider.dart'; // 경로 확인
+import 'package:journimal_client/providers/mission_provider.dart';
 
 class MissionSelectScreen extends StatefulWidget {
   const MissionSelectScreen({super.key});
@@ -15,7 +16,13 @@ class _MissionSelectScreenState extends State<MissionSelectScreen> {
   void initState() {
     super.initState();
     final provider = Provider.of<MissionProvider>(context, listen: false);
-    provider.fetchAvailableMissions();
+    // 현재 여행 정보를 먼저 가져온 후 미션 목록을 가져옵니다
+    _initializeData(provider);
+  }
+
+  Future<void> _initializeData(MissionProvider provider) async {
+    await provider.fetchCurrentTrip(); // 현재 여행 정보 가져오기
+    await provider.fetchAvailableMissions(); // 미션 목록 가져오기
   }
 
   @override
@@ -86,12 +93,12 @@ class _MissionSelectScreenState extends State<MissionSelectScreen> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Image.network(
-                                    mission.icon,
+                                    mission.missionIcon,
                                     width: 36,
                                     height: 36,
                                   ),
                                   Text(
-                                    mission.name,
+                                    mission.missionName,
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       fontFamily: 'Pretendard',
@@ -104,7 +111,14 @@ class _MissionSelectScreenState extends State<MissionSelectScreen> {
                                     height: 28,
                                     child: OutlinedButton(
                                       onPressed: () {
-                                        // 인증하기 로직 (아직 구현 안됨)
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  SurveyScreen(
+                                                    mission: mission,
+                                                  )),
+                                        );
                                       },
                                       style: OutlinedButton.styleFrom(
                                         backgroundColor: mission.isCertified
@@ -162,10 +176,10 @@ class _MissionSelectScreenState extends State<MissionSelectScreen> {
                         return ListTile(
                           contentPadding:
                               const EdgeInsets.symmetric(vertical: 15),
-                          leading: Image.network(mission.icon,
+                          leading: Image.network(mission.missionIcon,
                               width: 40, height: 40),
                           title: Text(
-                            mission.name,
+                            mission.missionName,
                             style: const TextStyle(
                               fontFamily: 'Pretendard',
                               fontSize: 16,
@@ -185,6 +199,7 @@ class _MissionSelectScreenState extends State<MissionSelectScreen> {
                               ),
                             ),
                             onPressed: () {
+                              // Trip 매개변수 제거
                               provider.toggleMissionSelection(mission);
                             },
                             child: Text(
