@@ -334,7 +334,7 @@ class MissionProvider extends ChangeNotifier {
       if (mission.isSelected) {
         // 미션이 이미 선택되어 있다면 DELETE 요청
         // URL에 missionId를 포함
-        final deleteUrl = '$apiUrl/mission/${mission.id}';
+        final deleteUrl = '$apiUrl/mission/${mission.userMissionId}';
 
         final response = await http.delete(
           Uri.parse(deleteUrl),
@@ -428,10 +428,8 @@ class MissionProvider extends ChangeNotifier {
 
     try {
       final apiUrl = dotenv.env['API_URL']!;
-
-      // mission.userMissionId가 있다면 해당 ID를 사용, 없다면 mission.id 사용
-      final userMissionId = mission.userMissionId ?? mission.id;
-      final url = '$apiUrl/user-missions/$userMissionId';
+      final url = '$apiUrl/mission/${mission.userMissionId}';
+      debugPrint('요청 URL: $url');
 
       final token = await _tokenService.getToken();
 
@@ -444,7 +442,7 @@ class MissionProvider extends ChangeNotifier {
         body: jsonEncode({
           'tripId': _currentTrip!.id,
           'answers': answers,
-          'isCompleted': isSuccessful, // 2개 이상 yes일 때만 true
+          'isCompleted': isSuccessful,
         }),
       );
 
@@ -452,11 +450,9 @@ class MissionProvider extends ChangeNotifier {
         final responseData = jsonDecode(response.body);
         debugPrint('미션 완료 응답: $responseData');
 
-        // 로컬 상태 업데이트
         mission.isCertified = isSuccessful;
         mission.answers = answers;
 
-        // 완료된 미션 수 업데이트
         if (isSuccessful &&
             !_allMissions.any((m) => m.id == mission.id && m.isCertified)) {
           _completeMission++;
