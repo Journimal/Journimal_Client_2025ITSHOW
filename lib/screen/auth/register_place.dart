@@ -71,7 +71,7 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
           .map<String>((airport) => airport['airportName'] as String)
           .toList();
     } else {
-      print('공항 목록 불러오기 실패: ${response.body}');
+      debugPrint('공항 목록 불러오기 실패: ${response.body}');
       return [];
     }
   }

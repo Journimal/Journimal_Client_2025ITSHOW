@@ -11,7 +11,11 @@ class MissionSelectScreen extends StatefulWidget {
   State<MissionSelectScreen> createState() => _MissionSelectScreenState();
 }
 
-class _MissionSelectScreenState extends State<MissionSelectScreen> {
+class _MissionSelectScreenState extends State<MissionSelectScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true; // 화면을 메모리에 유지!
+
   @override
   void initState() {
     super.initState();
@@ -27,6 +31,8 @@ class _MissionSelectScreenState extends State<MissionSelectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin 사용 시 필수!
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(

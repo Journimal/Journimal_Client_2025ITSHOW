@@ -8,6 +8,16 @@ import 'package:journimal_client/models/mission.dart';
 import 'package:journimal_client/models/trip.dart';
 
 class MissionProvider extends ChangeNotifier {
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
+  Future<void> initializeIfNeeded() async {
+    if (!_isInitialized) {
+      await fetchCurrentTrip();
+      await fetchMissionsWithUserData();
+      _isInitialized = true;
+    }
+  }
+
   DateTime _startDate = DateTime.now(); // 여행 시작 날짜 (API에서 불러올 예정)
   final TokenService _tokenService = TokenService();
 
