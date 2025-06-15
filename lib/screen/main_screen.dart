@@ -5,8 +5,10 @@ import 'package:journimal_client/screen/mission/mission_select.dart';
 import 'package:journimal_client/screen/trip/trip.dart';
 
 class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
   @override
-  _MainScreenState createState() => _MainScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
@@ -24,22 +26,25 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  // 각 탭에 해당하는 화면 리스트
+  // 각 탭에 해당하는 화면 리스트 - IndexedStack에서 사용
+  late final List<Widget> _screens = [
+    HomeScreen(onMissionSelect: _goToMissionScreen),
+    MissionSelectScreen(),
+    TripScreen(),
+    InfromationScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> _screens = [
-      HomeScreen(onMissionSelect: _goToMissionScreen),
-      MissionSelectScreen(),
-      TripScreen(),
-      InfromationScreen(),
-    ];
     return Theme(
       data: Theme.of(context).copyWith(
         splashFactory: NoSplash.splashFactory, // 물결 효과 제거
       ),
       child: Scaffold(
-        body: _screens[_selectedIndex],
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: _screens,
+        ),
         bottomNavigationBar: SizedBox(
           height: 100,
           child: BottomNavigationBar(
