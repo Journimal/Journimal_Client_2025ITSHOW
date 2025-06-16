@@ -205,8 +205,23 @@ class _MissionSelectScreenState extends State<MissionSelectScreen>
                               ),
                             ),
                             onPressed: () {
-                              // Trip 매개변수 제거
-                              provider.toggleMissionSelection(mission);
+                              if (mission.isSelected) {
+                                provider.toggleMissionSelection(
+                                    mission); // 선택 취소는 언제든 허용
+                              } else {
+                                if (provider.selectedMissions.length >=
+                                    provider.totalMission) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          "You can select up to ${provider.totalMission} missions."),
+                                    ),
+                                  );
+                                } else {
+                                  provider
+                                      .toggleMissionSelection(mission); // 선택 허용
+                                }
+                              }
                             },
                             child: Text(
                               mission.isSelected ? "Cancel" : "Add",
