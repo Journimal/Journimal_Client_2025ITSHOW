@@ -334,7 +334,7 @@ class MissionProvider extends ChangeNotifier {
       if (mission.isSelected) {
         // 미션이 이미 선택되어 있다면 DELETE 요청
         // URL에 missionId를 포함
-        final deleteUrl = '$apiUrl/mission/${mission.userMissionId}';
+        final deleteUrl = '$apiUrl/mission/${mission.id}';
 
         final response = await http.delete(
           Uri.parse(deleteUrl),
@@ -428,7 +428,7 @@ class MissionProvider extends ChangeNotifier {
 
     try {
       final apiUrl = dotenv.env['API_URL']!;
-      final url = '$apiUrl/mission/${mission.userMissionId}';
+      final url = '$apiUrl/mission/${mission.id}';
       debugPrint('요청 URL: $url');
 
       final token = await _tokenService.getToken();
