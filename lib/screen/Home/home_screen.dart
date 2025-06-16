@@ -98,7 +98,9 @@ class _HomeScreen extends State<HomeScreen> {
             // Category and progress
             Container(
               alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.only(left: 40),
+              padding: const EdgeInsets.only(
+                left: 40,
+              ),
               child: Container(
                 width: 42,
                 height: 18,
@@ -161,11 +163,13 @@ class _HomeScreen extends State<HomeScreen> {
             // Current Mission section
             Container(
               width: 340,
-              padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: const Color(0xFF022169),
                 borderRadius: BorderRadius.circular(12),
               ),
+              padding: const EdgeInsets.only(
+                  top: 20, bottom: 20, left: 16, right: 16), // 내부 여백 추가
+
               child: Column(
                 children: [
                   Container(
@@ -195,26 +199,59 @@ class _HomeScreen extends State<HomeScreen> {
                     onTap: () {
                       widget.onMissionSelect();
                     },
-                    child: DottedBorder(
-                      color: Colors.white,
-                      dashPattern: [6, 3], // 6픽셀 그리고 3픽셀 쉬기
-                      borderType: BorderType.RRect,
-                      radius: Radius.circular(8),
-                      child: Container(
-                        height: 62,
-                        width: 287,
-                        alignment: Alignment.center,
-                        child: Text(
-                          "You haven't chosen your mission yet :(\nClick here to choose missions!",
-                          softWrap: true,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white,
+                    child: missionProvider.selectedMissions.isEmpty
+                        ? GestureDetector(
+                            onTap: () {
+                              widget.onMissionSelect();
+                            },
+                            child: DottedBorder(
+                              color: Colors.white,
+                              dashPattern: [6, 3],
+                              borderType: BorderType.RRect,
+                              radius: const Radius.circular(8),
+                              child: Container(
+                                height: 62,
+                                width: 287,
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  "You haven't chosen your mission yet :(\nClick here to choose missions!",
+                                  softWrap: true,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white,
+                                    fontFamily: 'Pretendard',
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Column(
+                            children: missionProvider.selectedMissions
+                                .map(
+                                  (mission) => Container(
+                                    width: 287,
+                                    margin: EdgeInsets.only(bottom: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12, horizontal: 16),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xff7B8AAE),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      mission.missionName,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500,
+                                        fontFamily: 'Pretendard',
+                                        color: Colors.white,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
                   ),
                 ],
               ),
