@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:journimal_client/screen/auth/register_date.dart'; // TokenService 임포트
+import 'package:journimal_client/screen/auth/signup.dart';
 
 class TripScreen extends StatefulWidget {
   const TripScreen({Key? key}) : super(key: key);
@@ -72,7 +72,7 @@ class _TripScreenState extends State<TripScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const RegisterDateScreen(),
+                              builder: (context) => const SignupScreen(),
                             ),
                           );
                         },

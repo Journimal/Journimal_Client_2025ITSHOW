@@ -1,5 +1,7 @@
 class Mission {
   final int id;
+  final int missionId;
+  int? userMissionId; // final 제거하고 nullable로 변경
   final String missionName;
   final String missionIcon;
   final String thumbnail;
@@ -9,13 +11,12 @@ class Mission {
   final String question3;
   bool isSelected;
   bool isCertified;
-
-  // 새로 추가되는 필드들
-  int? userMissionId; // API 응답에서 받아올 userMission의 id
-  Map<String, String>? answers; // 설문 답변 저장용
+  Map<String, String>? answers;
 
   Mission({
     required this.id,
+    required this.missionId,
+    this.userMissionId, // required 제거
     required this.missionName,
     required this.missionIcon,
     required this.thumbnail,
@@ -25,22 +26,23 @@ class Mission {
     required this.question3,
     this.isSelected = false,
     this.isCertified = false,
-    this.userMissionId,
     this.answers,
   });
 
   factory Mission.fromJson(Map<String, dynamic> json) {
     return Mission(
       id: json['id'],
-      missionName: json['missionName'],
-      missionIcon: json['missionIcon'],
-      thumbnail: json['thumbnail'],
-      description: json['description'],
-      question1: json['question1'],
-      question2: json['question2'],
-      question3: json['question3'],
-      // API에서 userMission 정보도 함께 오는 경우
-      userMissionId: json['userMissionId'],
+      missionId: json['missionId'] ?? json['id'], // API 구조에 따라 조정
+      userMissionId: json['userMissionId'], // null 허용
+      missionName: json['missionName'] ?? '',
+      missionIcon: json['missionIcon'] ?? '',
+      thumbnail: json['thumbnail'] ?? '',
+      description: json['description'] ?? '',
+      question1: json['question1'] ?? '',
+      question2: json['question2'] ?? '',
+      question3: json['question3'] ?? '',
+      isSelected: json['isSelected'] ?? false,
+      isCertified: json['isCertified'] ?? false,
     );
   }
 
@@ -74,6 +76,7 @@ class Mission {
     bool? isSelected,
     bool? isCertified,
     int? userMissionId,
+    int? missionId, // ✅ 추가
     Map<String, String>? answers,
   }) {
     return Mission(
@@ -88,6 +91,7 @@ class Mission {
       isSelected: isSelected ?? this.isSelected,
       isCertified: isCertified ?? this.isCertified,
       userMissionId: userMissionId ?? this.userMissionId,
+      missionId: missionId ?? this.missionId, // ✅ 추가
       answers: answers ?? this.answers,
     );
   }

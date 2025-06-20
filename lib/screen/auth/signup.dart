@@ -4,12 +4,29 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-class SignupScreen extends StatelessWidget {
-  SignupScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
+  @override
+  State<SignupScreen> createState() => _SignupScreenState();
+}
+
+class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController idController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    // 메모리 누수 방지를 위해 컨트롤러들을 dispose
+    nameController.dispose();
+    idController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   void showSnackBar(BuildContext context, String message,
       {bool isError = true}) {
@@ -21,34 +38,38 @@ class SignupScreen extends StatelessWidget {
             isError ? Icons.error_outline : Icons.check_circle_outline,
             color: Colors.white,
           ),
-          SizedBox(width: 8),
-          Text(
-            message,
-            style: TextStyle(color: Colors.white),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
-      backgroundColor: isError ? Color(0xffFA7A7A) : Color(0xff4CAF50),
-      duration: Duration(seconds: 30),
+      backgroundColor:
+          isError ? const Color(0xffFA7A7A) : const Color(0xff4CAF50),
+      duration: const Duration(seconds: 3), // 30초는 너무 길어서 3초로 변경
     );
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   Future<void> validateAndSignup(BuildContext context) async {
-    if (nameController.text.isEmpty ||
-        idController.text.isEmpty ||
-        passwordController.text.isEmpty) {
-      showSnackBar(context, 'Please enter all fields.');
+    if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    setState(() {
+      _isLoading = true;
+    });
 
     final apiUrl = dotenv.env['API_URL']!;
     final signUpUrl = '$apiUrl/auth/signup';
 
     final Map<String, String> data = {
-      "userId": idController.text,
+      "userId": idController.text.trim(),
       "userPassword": passwordController.text,
-      "userNickname": nameController.text,
+      "userNickname": nameController.text.trim(),
     };
 
     try {
@@ -58,10 +79,16 @@ class SignupScreen extends StatelessWidget {
         body: jsonEncode(data),
       );
 
-      if (!context.mounted) return;
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
 
       if (response.statusCode == 201) {
-        Navigator.push(
+        showSnackBar(context, 'Account created successfully!', isError: false);
+        // 회원가입 성공 시 로그인 화면으로 이동
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
         );
@@ -74,8 +101,11 @@ class SignupScreen extends StatelessWidget {
       }
     } catch (e) {
       debugPrint('Signup error: $e');
-      if (context.mounted) {
-        showSnackBar(context, 'Error: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        showSnackBar(context, 'Network error. Please try again.');
       }
     }
   }
@@ -83,127 +113,182 @@ class SignupScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xff022169),
+      backgroundColor: const Color(0xff022169),
       appBar: AppBar(
-        backgroundColor: Color(0xff022169),
+        backgroundColor: const Color(0xff022169),
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(height: 50),
-              Text(
-                'Welcome to',
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w400,
-                  fontSize: 25,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(
-                height: 23,
-              ),
-              Image.asset(
-                'assets/images/journimal_logo.png',
-                width: 283.28,
-                height: 35.23,
-                fit: BoxFit.cover,
-              ),
-              SizedBox(height: 52),
-              buildTextField(nameController, 'Enter your Name'),
-              SizedBox(height: 16),
-              buildTextField(idController, 'Enter your ID'),
-              SizedBox(height: 16),
-              buildTextField(passwordController, 'Enter your Password',
-                  obscureText: true),
-              SizedBox(height: 60),
-              SizedBox(
-                width: 319,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: () => validateAndSignup(context),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xffffffff)),
-                  child: Text(
-                    'Sign up',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xff022169),
-                      fontSize: 20,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(
-                height: 24,
-              ),
-              Row(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Form(
+              key: _formKey,
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    'Already have an account?',
-                    textAlign: TextAlign.center,
+                  const SizedBox(height: 50),
+                  const Text(
+                    'Welcome to',
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w400,
-                      fontSize: 10,
+                      fontSize: 25,
                       color: Colors.white,
                     ),
                   ),
-                  SizedBox(
-                    width: 10,
+                  const SizedBox(height: 23),
+                  Image.asset(
+                    'assets/images/journimal_logo.png',
+                    width: 283.28,
+                    height: 35.23,
+                    fit: BoxFit.cover,
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => LoginScreen()),
-                      );
+                  const SizedBox(height: 52),
+                  buildTextFormField(
+                    controller: nameController,
+                    hintText: 'Enter your Name',
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter your name';
+                      }
+                      if (value.trim().length < 2) {
+                        return 'Name must be at least 2 characters';
+                      }
+                      return null;
                     },
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.only(
-                        top: 4,
-                        bottom: 4,
-                        right: 10,
-                        left: 10,
+                  ),
+                  const SizedBox(height: 16),
+                  buildTextFormField(
+                    controller: idController,
+                    hintText: 'Enter your ID',
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter your ID';
+                      }
+                      if (value.trim().length < 4) {
+                        return 'ID must be at least 4 characters';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  buildTextFormField(
+                    controller: passwordController,
+                    hintText: 'Enter your Password',
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      if (value.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 60),
+                  SizedBox(
+                    width: 319,
+                    height: 55,
+                    child: ElevatedButton(
+                      onPressed:
+                          _isLoading ? null : () => validateAndSignup(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xffffffff),
+                        disabledBackgroundColor: Colors.grey[300],
                       ),
-                      backgroundColor: Color(0xffffffff),
-                      minimumSize: Size.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: Text(
-                      'Log in',
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xff022169),
-                        fontSize: 10,
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xff022169)),
+                              ),
+                            )
+                          : const Text(
+                              'Sign up',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xff022169),
+                                fontSize: 20,
+                              ),
+                            ),
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Already have an account?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontWeight: FontWeight.w400,
+                          fontSize: 10,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const LoginScreen()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 4,
+                            horizontal: 10,
+                          ),
+                          backgroundColor: const Color(0xffffffff),
+                          minimumSize: Size.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Log in',
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xff022169),
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 50),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget buildTextField(TextEditingController controller, String hintText,
-      {TextInputType keyboardType = TextInputType.text,
-      bool obscureText = false}) {
+  Widget buildTextFormField({
+    required TextEditingController controller,
+    required String hintText,
+    TextInputType keyboardType = TextInputType.text,
+    bool obscureText = false,
+    String? Function(String?)? validator,
+  }) {
     return SizedBox(
       width: 319,
-      height: 62,
-      child: TextField(
+      child: TextFormField(
         controller: controller,
-        style: TextStyle(
+        validator: validator,
+        style: const TextStyle(
           fontFamily: 'Pretendard',
           fontWeight: FontWeight.w400,
           color: Colors.white,
@@ -211,18 +296,32 @@ class SignupScreen extends StatelessWidget {
         decoration: InputDecoration(
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.white, width: 1.0),
+            borderSide: const BorderSide(color: Colors.white, width: 1.0),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.white, width: 1.0),
+            borderSide: const BorderSide(color: Colors.white, width: 2.0),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Colors.red, width: 1.0),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Colors.red, width: 2.0),
           ),
           hintText: hintText,
-          hintStyle: TextStyle(
+          hintStyle: const TextStyle(
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w400,
-            color: Colors.white,
+            color: Colors.white70,
           ),
+          errorStyle: const TextStyle(
+            color: Colors.red,
+            fontSize: 12,
+          ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
         keyboardType: keyboardType,
         obscureText: obscureText,

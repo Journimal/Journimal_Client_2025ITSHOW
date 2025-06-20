@@ -10,6 +10,7 @@ import 'package:journimal_client/models/trip.dart';
 class MissionProvider extends ChangeNotifier {
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
+
   Future<void> initializeIfNeeded() async {
     if (!_isInitialized) {
       await fetchCurrentTrip();
@@ -18,13 +19,12 @@ class MissionProvider extends ChangeNotifier {
     }
   }
 
-  DateTime _startDate = DateTime.now(); // 여행 시작 날짜 (API에서 불러올 예정)
+  DateTime _startDate = DateTime.now();
   final TokenService _tokenService = TokenService();
 
-  // 여행 시작일로부터 며칠이 지났는지 계산
   int get dayCount {
     final difference = DateTime.now().difference(_startDate).inDays;
-    return difference + 1; // Day 1부터 시작
+    return difference + 1;
   }
 
   String _userName = '';
@@ -38,8 +38,6 @@ class MissionProvider extends ChangeNotifier {
   Future<void> fetchUserName() async {
     final apiUrl = dotenv.env['API_URL']!;
     final getUserNameUrl = '$apiUrl/user/name';
-
-    final token = await _tokenService.getToken();
 
     try {
       final token = await _tokenService.getToken();
@@ -98,26 +96,26 @@ class MissionProvider extends ChangeNotifier {
   Color get backgroundColor {
     switch (_animalLevel.toLowerCase()) {
       case 'vu':
-        return const Color(0xFFF7E7B9); // Gold
+        return const Color(0xFFF7E7B9);
       case 'eu':
-        return const Color(0xFFF3CFAE); // Orange
+        return const Color(0xFFF3CFAE);
       case 'ce':
-        return const Color(0xFFDFA4AB); // Red
+        return const Color(0xFFDFA4AB);
       default:
-        return Colors.grey; // 기본값
+        return Colors.grey;
     }
   }
 
   Color get pointColor {
     switch (_animalLevel.toLowerCase()) {
       case 'vu':
-        return const Color(0xFFFAD160); // Gold
+        return const Color(0xFFFAD160);
       case 'eu':
-        return const Color(0xFFF09543); // Orange
+        return const Color(0xFFF09543);
       case 'ce':
-        return const Color(0xFFBD2B3D); // Red
+        return const Color(0xFFBD2B3D);
       default:
-        return Colors.grey; // 기본값
+        return Colors.grey;
     }
   }
 
@@ -145,7 +143,6 @@ class MissionProvider extends ChangeNotifier {
   List<Mission> get unselectedMissions =>
       _allMissions.where((m) => !m.isSelected).toList();
 
-  // missionSelect화면에서 미션 리스트를 보여줌
   Future<void> fetchMission() async {
     try {
       final apiUrl = dotenv.env['API_URL']!;
@@ -176,7 +173,6 @@ class MissionProvider extends ChangeNotifier {
     }
   }
 
-  // 홈화면에서 동물 레벨에 따라 테마가 바뀌는 함수
   Future<void> fetchAnimalLevel() async {
     try {
       final apiUrl = dotenv.env['API_URL']!;
@@ -211,7 +207,6 @@ class MissionProvider extends ChangeNotifier {
     }
   }
 
-  // 홈화면에서 동물 이미지 불러오는 함수
   Future<void> fetchAnimalImage() async {
     try {
       final apiUrl = dotenv.env['API_URL']!;
@@ -274,11 +269,9 @@ class MissionProvider extends ChangeNotifier {
     }
   }
 
-  // 현재 여행 정보를 저장할 변수 추가
   Trip? _currentTrip;
   Trip? get currentTrip => _currentTrip;
 
-// 현재 여행 정보를 가져오는 함수
   Future<void> fetchCurrentTrip() async {
     try {
       final apiUrl = dotenv.env['API_URL']!;
@@ -303,7 +296,6 @@ class MissionProvider extends ChangeNotifier {
           final latestTrip = trips.first;
           _currentTrip = Trip.fromJson(latestTrip);
 
-          // 기존 로직들도 여기서 함께 처리
           _completeMission = latestTrip['completeMission'] ?? 0;
 
           if (latestTrip['lastAnimal'] != null) {
@@ -331,11 +323,33 @@ class MissionProvider extends ChangeNotifier {
       final apiUrl = dotenv.env['API_URL']!;
       final token = await _tokenService.getToken();
 
-      if (mission.isSelected) {
-        // 미션이 이미 선택되어 있다면 DELETE 요청
-        // URL에 missionId를 포함
-        final deleteUrl = '$apiUrl/mission/${mission.id}';
+      final tripId = _currentTrip!.id;
+      final aniLevel = _currentTrip!.lastAnimal?.aniLevel?.toUpperCase();
 
+      int round;
+      switch (aniLevel) {
+        case 'VU':
+          round = 1;
+          break;
+        case 'EU':
+          round = 2;
+          break;
+        case 'CE':
+          round = 3;
+          break;
+        default:
+          debugPrint('알 수 없는 aniLevel: $aniLevel');
+          return;
+      }
+
+      if (mission.isSelected) {
+        // 🔴 미션 선택 취소
+        if (mission.userMissionId == null) {
+          debugPrint('userMissionId가 null입니다. 미션을 선택 취소할 수 없습니다.');
+          return;
+        }
+
+        final deleteUrl = '$apiUrl/mission/${mission.userMissionId}';
         final response = await http.delete(
           Uri.parse(deleteUrl),
           headers: {
@@ -346,34 +360,40 @@ class MissionProvider extends ChangeNotifier {
 
         if (response.statusCode == 200) {
           mission.isSelected = false;
+          mission.userMissionId = null;
           debugPrint('미션 선택 취소 성공');
         } else {
           debugPrint('미션 선택 취소 실패: ${response.statusCode}');
           debugPrint('응답 내용: ${response.body}');
         }
       } else {
-        // 미션이 선택되어 있지 않다면 POST 요청
-        final createUrl = '$apiUrl/mission/choose';
+        // ✅ 선택 전에 현재 선택된 미션이 있는지 확인
+        final currentMissionUrl = '$apiUrl/mission/current';
+        final currentMissionResponse = await http.get(
+          Uri.parse(currentMissionUrl),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
 
-        // aniLevel 값을 기반으로 round 설정
-        final aniLevel = _currentTrip!.lastAnimal?.aniLevel?.toUpperCase();
-        int round;
+        if (currentMissionResponse.statusCode == 200) {
+          final currentData = jsonDecode(currentMissionResponse.body);
+          final userMissions = currentData['data']?['userMissions'] ?? [];
 
-        switch (aniLevel) {
-          case 'VU':
-            round = 1;
-            break;
-          case 'EU':
-            round = 2;
-            break;
-          case 'CE':
-            round = 3;
-            break;
-          default:
-            debugPrint('알 수 없는 aniLevel: $aniLevel');
+          final alreadySelected = userMissions
+              .any((m) => m['round'] == round && m['missionId'] == mission.id);
+
+          if (alreadySelected) {
+            debugPrint('이미 이 라운드에 같은 미션이 선택되어 있습니다.');
             return;
+          }
+        } else {
+          debugPrint('현재 미션 조회 실패: ${currentMissionResponse.statusCode}');
         }
 
+        // 🟢 미션 선택 요청
+        final createUrl = '$apiUrl/mission/choose';
         final response = await http.post(
           Uri.parse(createUrl),
           headers: {
@@ -381,7 +401,7 @@ class MissionProvider extends ChangeNotifier {
             'Authorization': 'Bearer $token',
           },
           body: jsonEncode({
-            "tripId": _currentTrip!.id,
+            "tripId": tripId,
             "missionId": mission.id,
             "round": round,
             "isCompleted": mission.isCertified,
@@ -389,8 +409,19 @@ class MissionProvider extends ChangeNotifier {
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {
-          mission.isSelected = true;
-          debugPrint('미션 선택 성공');
+          final responseData = jsonDecode(response.body);
+          debugPrint('미션 선택 응답 전체: $responseData');
+
+          final userMissionId = responseData['data']?['id'];
+          if (userMissionId != null) {
+            mission.userMissionId = userMissionId;
+            mission.isSelected = true;
+            debugPrint('미션 선택 성공, userMissionId: ${mission.userMissionId}');
+          } else {
+            debugPrint('응답 데이터에서 ID를 찾을 수 없습니다: $responseData');
+          }
+        } else if (response.statusCode == 409) {
+          debugPrint('해당 라운드에 이미 다른 미션이 선택되어 있습니다.');
         } else {
           debugPrint('미션 선택 실패: ${response.statusCode}');
           debugPrint('응답 내용: ${response.body}');
@@ -413,9 +444,7 @@ class MissionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // MissionProvider class에 추가할 메서드들
-
-// 미션 완료 처리 (2개 이상 yes일 때만 성공)
+  // 🔧 수정된 CertifedMission 메서드 - 올바른 API URL 사용
   Future<bool> CertifedMission({
     required Mission mission,
     required Map<String, String> answers,
@@ -426,12 +455,23 @@ class MissionProvider extends ChangeNotifier {
       return false;
     }
 
+    if (mission.userMissionId == null) {
+      debugPrint('userMissionId가 null입니다. 미션을 완료할 수 없습니다.');
+      return false;
+    }
+
     try {
       final apiUrl = dotenv.env['API_URL']!;
-      final url = '$apiUrl/mission/${mission.id}';
+      final url = '$apiUrl/mission/${mission.userMissionId}'; // 🔧 올바른 URL 구조
       debugPrint('요청 URL: $url');
 
       final token = await _tokenService.getToken();
+
+      final requestBody = {
+        'tripId': _currentTrip!.id,
+      };
+
+      debugPrint('미션 완료 요청 body: $requestBody');
 
       final response = await http.patch(
         Uri.parse(url),
@@ -439,23 +479,25 @@ class MissionProvider extends ChangeNotifier {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'tripId': _currentTrip!.id,
-          'answers': answers,
-          'isCompleted': isSuccessful,
-        }),
+        body: jsonEncode(requestBody),
       );
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         debugPrint('미션 완료 응답: $responseData');
 
-        mission.isCertified = isSuccessful;
-        mission.answers = answers;
+        // 🔧 실제 API 응답에 따라 isCompleted 값 설정
+        if (responseData['data'] != null) {
+          final updatedData = responseData['data'];
+          mission.isCertified = updatedData['isCompleted'] ?? isSuccessful;
+          mission.answers = answers;
 
-        if (isSuccessful &&
-            !_allMissions.any((m) => m.id == mission.id && m.isCertified)) {
-          _completeMission++;
+          // 🔧 completeMission 카운트 로직 수정
+          if (mission.isCertified) {
+            _completeMission++;
+          }
+
+          debugPrint('미션 완료 상태 업데이트: isCertified=${mission.isCertified}');
         }
 
         notifyListeners();
@@ -471,16 +513,11 @@ class MissionProvider extends ChangeNotifier {
     }
   }
 
-// 선택된 미션들의 userMissionId를 가져오는 메서드
-  Future<void> fetchSelectedMissionsWithUserIds() async {
-    if (_currentTrip == null) {
-      debugPrint('현재 여행 정보가 없습니다.');
-      return;
-    }
-
+  // 🔧 새로운 메서드: 현재 선택된 미션들을 가져오기
+  Future<void> fetchCurrentChosenMissions() async {
     try {
       final apiUrl = dotenv.env['API_URL']!;
-      final url = '$apiUrl/user-missions?tripId=${_currentTrip!.id}';
+      final url = '$apiUrl/mission/current';
 
       final token = await _tokenService.getToken();
 
@@ -496,70 +533,71 @@ class MissionProvider extends ChangeNotifier {
         final responseData = jsonDecode(response.body);
         final List<dynamic> userMissions = responseData['data'];
 
+        // 모든 미션을 먼저 선택 해제 상태로 초기화
+        for (var mission in _allMissions) {
+          mission.isSelected = false;
+          mission.isCertified = false;
+          mission.userMissionId = null;
+          mission.answers = null;
+        }
+
         // 각 미션에 userMissionId 매핑
         for (var userMission in userMissions) {
           final missionId = userMission['missionId'];
           final userMissionId = userMission['id'];
           final isCompleted = userMission['isCompleted'] ?? false;
 
-          // 해당하는 미션 찾아서 업데이트
-          final mission = _allMissions.firstWhere(
-            (m) => m.id == missionId,
-            orElse: () => Mission(
-                id: -1,
-                missionName: '',
-                missionIcon: '',
-                thumbnail: '',
-                description: '',
-                question1: '',
-                question2: '',
-                question3: ''),
-          );
+          final missionIndex =
+              _allMissions.indexWhere((m) => m.id == missionId);
 
-          if (mission.id != -1) {
-            mission.userMissionId = userMissionId;
+          if (missionIndex != -1) {
+            final mission = _allMissions[missionIndex];
             mission.isSelected = true;
             mission.isCertified = isCompleted;
+            mission.userMissionId = userMissionId;
+
+            // answers가 있다면 설정
+            if (userMission['answers'] != null) {
+              final answersMap = <String, String>{};
+              final answers = userMission['answers'] as Map<String, dynamic>;
+              answers.forEach((key, value) {
+                answersMap[key] = value.toString();
+              });
+              mission.answers = answersMap;
+            }
+
+            debugPrint(
+                '미션 ID: $missionId, userMissionId: $userMissionId 설정 완료');
           }
         }
 
         notifyListeners();
       } else {
-        debugPrint('선택된 미션 목록 가져오기 실패: ${response.statusCode}');
+        debugPrint('현재 선택된 미션 목록 가져오기 실패: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('선택된 미션 목록 가져오기 중 오류 발생: $e');
+      debugPrint('현재 선택된 미션 목록 가져오기 중 오류 발생: $e');
     }
   }
 
-// 미션 상세 정보와 함께 선택된 미션들을 가져오는 통합 메서드
+  // 🔧 기존 메서드 이름 변경 및 새로운 API 사용
+  Future<void> fetchSelectedMissionsWithUserIds() async {
+    await fetchCurrentChosenMissions();
+  }
+
   Future<void> fetchMissionsWithUserData() async {
-    await fetchAvailableMissions(); // 전체 미션 목록 가져오기
-    await fetchSelectedMissionsWithUserIds(); // 선택된 미션의 userMissionId 가져오기
+    await fetchAvailableMissions();
+    await fetchCurrentChosenMissions(); // 🔧 새로운 API 사용
   }
 
-// 특정 미션의 완료 상태 확인
   bool isMissionCompleted(int missionId) {
-    final mission = _allMissions.firstWhere(
-      (m) => m.id == missionId,
-      orElse: () => Mission(
-          id: -1,
-          missionName: '',
-          missionIcon: '',
-          thumbnail: '',
-          description: '',
-          question1: '',
-          question2: '',
-          question3: ''),
-    );
-    return mission.id != -1 ? mission.isCertified : false;
+    final missionIndex = _allMissions.indexWhere((m) => m.id == missionId);
+    return missionIndex != -1 ? _allMissions[missionIndex].isCertified : false;
   }
 
-// 완료 가능한 미션들 (선택되었지만 아직 완료되지 않은 미션들)
   List<Mission> get availableForCompletion =>
       _allMissions.where((m) => m.isSelected && !m.isCertified).toList();
 
-// 현재 trip의 완료율 계산
   double get currentTripCompletionRate {
     final selectedMissions = _allMissions.where((m) => m.isSelected).toList();
     if (selectedMissions.isEmpty) return 0.0;
